@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>KWP Terminal</title>
+<style>
+  :root {
+    --bg: #000000;
+    --panel: #0a0a0a;
+    --line: #262626;
+    --amber: #ffb000;
+    --white: #d8d8d8;
+    --green: #00d964;
+    --red: #ff3b3b;
+    --mono: "Menlo", "Consolas", "SFMono-Regular", monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--white); font-family: var(--mono); }
+  .ticker-wrap { background: #111; border-bottom: 1px solid var(--line); overflow: hidden; white-space: nowrap; padding: 6px 0; }
+  .ticker { display: inline-block; animation: scroll 60s linear infinite; }
+  .tick { display: inline-block; padding: 0 22px; font-size: 12px; color: var(--white); }
+  .tick b { color: var(--amber); font-weight: normal; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+
+  header { display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 8px; }
+  .brand { color: var(--amber); font-size: 14px; letter-spacing: 2px; }
+  nav.fkeys { display: flex; gap: 2px; }
+  nav.fkeys a {
+    color: var(--white); text-decoration: none; font-size: 11px; padding: 5px 10px;
+    border: 1px solid var(--line); background: var(--panel);
+  }
+  nav.fkeys a.active { color: #000; background: var(--amber); border-color: var(--amber); }
+  .as-of { font-size: 10px; color: #666; }
+
+  .period-bar { display: flex; gap: 2px; padding: 10px 16px; border-bottom: 1px solid var(--line); align-items: center; }
+  .period-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-right: 10px; }
+  .period-bar button {
+    font-family: var(--mono); font-size: 11px; color: var(--white); background: var(--panel);
+    border: 1px solid var(--line); padding: 5px 14px; cursor: pointer;
+  }
+  .period-bar button.active { color: #000; background: var(--amber); border-color: var(--amber); }
+
+  .wrap { padding: 14px 16px 40px; max-width: 1400px; margin: 0 auto; }
+  .total-strip { display: flex; gap: 30px; align-items: baseline; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+  .total-label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+  .total-value { font-size: 26px; color: var(--amber); }
+
+  .grid-wrap { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); }
+  .panel h3 {
+    margin: 0; padding: 6px 10px; font-size: 10.5px; color: #000; background: var(--amber);
+    text-transform: uppercase; letter-spacing: 1px; font-weight: normal;
+  }
+  .t-row { display: flex; justify-content: space-between; padding: 5px 10px; font-size: 12px; border-top: 1px solid var(--line); }
+  .t-row:first-child { border-top: none; }
+  .t-name { color: #aaa; }
+  .t-val { color: var(--white); text-align: right; }
+  .t-delta { min-width: 110px; text-align: right; font-size: 11px; }
+  .t-up { color: var(--green); }
+  .t-down { color: var(--red); }
+  .t-na { color: #555; font-size: 10px; padding: 10px; text-align: center; }
+
+  .cal-strip { display: flex; gap: 8px; overflow-x: auto; margin-top: 4px; }
+  .cal-card { border: 1px solid var(--line); background: var(--panel); padding: 6px 10px; font-size: 11px; white-space: nowrap; flex: 0 0 auto; }
+  .cal-card.fomc { border-color: var(--amber); }
+  .cal-card .cal-date { color: var(--amber); }
+  .cal-card .cal-name { color: var(--white); }
+  .cal-card .cal-time { color: #888; }
+  .cal-empty { font-size: 11px; color: #666; }
+
+  .insight-card { border-top: 1px solid var(--line); padding: 10px 12px; font-size: 12px; }
+  .insight-card:first-child { border-top: none; }
+  .insight-head { margin-bottom: 4px; }
+  .insight-label { color: var(--amber); }
+  .insight-when { color: #666; font-size: 10px; float: right; }
+  .insight-text { color: #ccc; line-height: 1.5; }
+
+  .insights-head { display: flex; align-items: center; background: var(--amber); padding: 0 10px; }
+  .insights-head h3 { background: transparent; padding: 6px 0; }
+  .insights-head .btn-group { border-color: #000; }
+  .insights-head .btn-group button {
+    font-family: var(--mono); font-size: 10px; color: #000; background: transparent;
+    border: 1px solid #000; padding: 3px 10px; cursor: pointer;
+  }
+  .insights-head .btn-group button.active { background: #000; color: var(--amber); }
+
+  footer { text-align: center; font-size: 10px; color: #444; margin-top: 24px; }
+  @media (max-width: 900px) { .grid-wrap { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <div class="ticker-wrap"><div class="ticker" id="ticker"></div></div>
+
+  <header>
+    <div class="brand">KWP TERMINAL</div>
+    <nav class="fkeys">
+      <a href="index.html">[F1] MACRO</a>
+      <a href="portfolio.html">[F2] PORTFOLIO</a>
+      <a href="terminal.html" class="active">[F3] TERMINAL</a>
+      <a href="porter.html">[F4] PORTER</a>
+    </nav>
+    <div class="as-of">2026-09-18 17:31</div>
+  </header>
+
+  <div class="period-bar" id="period-bar">
+    <span class="period-label">Period</span>
+    <button data-period="1d">Daily</button>
+    <button data-period="1w" class="active">1W</button>
+    <button data-period="1m">1M</button>
+    <button data-period="6m">6M</button>
+    <button data-period="ytd">YTD</button>
+    <button data-period="1y">1Y</button>
+  </div>
+
+  <div class="wrap">
+    <div class="total-strip"><div><div class="total-label">Portfolio Value</div><div class="total-value">$129,702,872</div></div></div>
+
+    <div class="grid-wrap">
+      <div class="panel"><h3>Rates</h3><div id="grid-rates"></div></div>
+      <div class="panel"><h3>Inflation</h3><div id="grid-inflation"></div></div>
+      <div class="panel"><h3>Labor</h3><div id="grid-labor"></div></div>
+      <div class="panel"><h3>Risk Signals</h3><div id="grid-risk"></div></div>
+      <div class="panel"><h3>Money &amp; Housing</h3><div id="grid-money_housing"></div></div>
+      <div class="panel"><h3>Business Activity</h3><div id="grid-business"></div></div>
+      <div class="panel"><h3>Growth &amp; Consumer</h3><div id="grid-growth"></div></div>
+      <div class="panel"><h3 id="winners-h3">Top Movers</h3><div id="winners"></div></div>
+<div class="panel"><h3 id="losers-h3">Bottom Movers</h3><div id="losers"></div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Next 3 Weeks</h3>
+      <div class="cal-strip"><div class="cal-card"><div class="cal-date">Fri Sep 18</div><div class="cal-name">Industrial Production</div><div class="cal-time">9:15 AM ET &middot; Aug 2026</div></div>
+<div class="cal-card"><div class="cal-date">Fri Sep 25</div><div class="cal-name">UMich Consumer Sentiment (final, est.)</div><div class="cal-time">10:00 AM ET &middot; Sep 2026</div></div>
+<div class="cal-card"><div class="cal-date">Fri Sep 25</div><div class="cal-name">Durable Goods Orders</div><div class="cal-time">8:30 AM ET &middot; Aug 2026</div></div>
+<div class="cal-card"><div class="cal-date">Tue Sep 29</div><div class="cal-name">JOLTS</div><div class="cal-time">10:00 AM ET &middot; Aug 2026</div></div>
+<div class="cal-card"><div class="cal-date">Wed Sep 30</div><div class="cal-name">GDP (3rd est.)</div><div class="cal-time">8:30 AM ET &middot; Q2 2026</div></div>
+<div class="cal-card"><div class="cal-date">Wed Sep 30</div><div class="cal-name">PCE Inflation</div><div class="cal-time">8:30 AM ET &middot; Aug 2026</div></div>
+<div class="cal-card"><div class="cal-date">Fri Oct 2</div><div class="cal-name">Mfg New Orders (full M3 report)</div><div class="cal-time">10:00 AM ET &middot; Aug 2026</div></div>
+<div class="cal-card"><div class="cal-date">Fri Oct 2</div><div class="cal-name">Nonfarm Payrolls</div><div class="cal-time">8:30 AM ET &middot; Sep 2026</div></div>
+<div class="cal-card fomc"><div class="cal-date">Wed Oct 7</div><div class="cal-name">FOMC Minutes</div><div class="cal-time">2:00 PM ET &middot; Sep 15-16 mtg</div></div></div>
+    </div>
+
+    <div class="panel" style="margin-top: 10px;">
+      <div class="insights-head">
+        <h3 style="flex:1">Insights &mdash; Drastic Moves</h3>
+        <div class="btn-group" id="insight-period-group">
+          <button data-iperiod="daily">Daily</button>
+          <button data-iperiod="weekly" class="active">Past Week</button>
+        </div>
+      </div>
+      <div id="insights"></div>
+    </div>
+
+    <footer>DATA: FRED &middot; GOOGLE FINANCE &middot; NOT INVESTMENT ADVICE</footer>
+  </div>
+
+<script>
+const GRIDS = {"rates": [{"name": "Fed Funds Rate", "latest": 3.63, "1w": {"pt": 0.0, "pct": 0.0}, "1m": {"pt": 0.0, "pct": 0.0}, "6m": {"pt": -0.010000000000000231, "pct": -0.2747252747252811}, "1y": {"pt": -0.7000000000000002, "pct": -16.16628175519631}, "ytd": {"pt": -0.010000000000000231, "pct": -0.2747252747252811}}, {"name": "Prime Rate", "latest": 6.75, "1w": {"pt": 0.0, "pct": 0.0}, "1m": {"pt": 0.0, "pct": 0.0}, "6m": {"pt": 0.0, "pct": 0.0}, "1y": {"pt": -0.75, "pct": -10.0}, "ytd": {"pt": 0.0, "pct": 0.0}}, {"name": "3M Treasury Yield", "latest": 3.72, "1w": {"pt": -0.009999999999999787, "pct": -0.2680965147453026}, "1m": {"pt": -0.009999999999999787, "pct": -0.2680965147453026}, "6m": {"pt": 0.1200000000000001, "pct": 3.333333333333336}, "1y": {"pt": -0.3999999999999999, "pct": -9.708737864077667}, "ytd": {"pt": 0.15000000000000036, "pct": 4.2016806722689175}}, {"name": "2Y Treasury Yield", "latest": 4.5192, "1w": {"pt": 0.30299999999999994, "pct": 7.186566102177315}, "1m": {"pt": 0.30299999999999994, "pct": 7.186566102177315}, "6m": {"pt": 0.8046999999999995, "pct": 21.66375016825951}, "1y": {"pt": 0.9505999999999997, "pct": 26.63789721459395}, "ytd": {"pt": 0.9821999999999997, "pct": 27.769296013570816}}, {"name": "5Y Treasury Yield", "latest": 4.6775, "1w": {"pt": 0.29320000000000057, "pct": 6.6874985744588775}, "1m": {"pt": 0.29320000000000057, "pct": 6.6874985744588775}, "6m": {"pt": 0.8293000000000004, "pct": 21.55033522166209}, "1y": {"pt": 1.0151000000000003, "pct": 27.71679772826563}, "ytd": {"pt": 0.8965000000000001, "pct": 23.710658555937584}}, {"name": "10Y Treasury Yield", "latest": 4.8825, "1w": {"pt": 0.19819999999999993, "pct": 4.231155135238987}, "1m": {"pt": 0.19819999999999993, "pct": 4.231155135238987}, "6m": {"pt": 0.6366000000000005, "pct": 14.993287642196012}, "1y": {"pt": 0.7620000000000005, "pct": 18.49290134692393}, "ytd": {"pt": 0.6690000000000005, "pct": 15.877536489854052}}, {"name": "30Y Treasury Yield", "latest": 5.3017, "1w": {"pt": 0.07790000000000052, "pct": 1.491251579310091}, "1m": {"pt": 0.07790000000000052, "pct": 1.491251579310091}, "6m": {"pt": 0.45670000000000055, "pct": 9.42621259029929}, "1y": {"pt": 0.5588000000000006, "pct": 11.781821248603189}, "ytd": {"pt": 0.4632000000000005, "pct": 9.573214839309713}}, {"name": "10Y-3M Yield Spread", "latest": 0.8754, "1w": {"pt": 0.06779999999999997, "pct": 8.395245170876668}, "1m": {"pt": 0.06779999999999997, "pct": 8.395245170876668}, "6m": {"pt": 0.3485999999999999, "pct": 66.17312072892936}, "1y": {"pt": 0.8206, "pct": 1497.4452554744526}, "ytd": {"pt": 0.3273999999999999, "pct": 59.744525547445235}}, {"name": "10Y-2Y Yield Spread", "latest": 0.3546, "1w": {"pt": -0.11349999999999999, "pct": -24.246955778679766}, "1m": {"pt": -0.11349999999999999, "pct": -24.246955778679766}, "6m": {"pt": -0.17679999999999996, "pct": -33.27060594655626}, "1y": {"pt": -0.19729999999999992, "pct": -35.74922993295886}, "ytd": {"pt": -0.32189999999999996, "pct": -47.58314855875831}}], "inflation": [{"name": "CPI YoY", "latest": 3.353, "1w": {"pt": 0.049100000000000144, "pct": 1.4861224613335797}, "1m": {"pt": 0.049100000000000144, "pct": 1.4861224613335797}, "6m": {"pt": 0.919, "pct": 37.75677896466721}, "1y": {"pt": 0.4144000000000001, "pct": 14.101953311100527}, "ytd": {"pt": 0.9618000000000002, "pct": 40.2224824355972}}, {"name": "Core CPI YoY", "latest": 2.4462, "1w": {"pt": -0.020299999999999763, "pct": -0.823028583012356}, "1m": {"pt": -0.020299999999999763, "pct": -0.823028583012356}, "6m": {"pt": -0.02629999999999999, "pct": -1.0637007077856415}, "1y": {"pt": -0.6656, "pct": -21.389549456905968}, "ytd": {"pt": -0.06579999999999986, "pct": -2.619426751592351}}, {"name": "Supercore CPI Proxy", "latest": 3.0165, "1w": {"pt": 0.011800000000000033, "pct": 0.3927180750158096}, "1m": {"pt": 0.011800000000000033, "pct": 0.3927180750158096}, "6m": {"pt": 0.08330000000000037, "pct": 2.8399018137188183}, "1y": {"pt": -0.5961999999999996, "pct": -16.502892573421533}, "ytd": {"pt": 0.06490000000000018, "pct": 2.198807426480559}}, {"name": "Core PCE Deflator", "latest": 3.3441, "1w": {"pt": 0.000500000000000167, "pct": 0.014953941859079046}, "1m": {"pt": 0.000500000000000167, "pct": 0.014953941859079046}, "6m": {"pt": 0.23940000000000028, "pct": 7.710889941057117}, "1y": {"pt": 0.4811000000000001, "pct": 16.804051694027248}, "ytd": {"pt": 0.23940000000000028, "pct": 7.710889941057117}}, {"name": "PPI Final Demand", "latest": 5.4136, "1w": {"pt": 0.6093999999999999, "pct": 12.68473419091628}, "1m": {"pt": 0.6093999999999999, "pct": 12.68473419091628}, "6m": {"pt": 2.0601, "pct": 61.43134039063665}, "1y": {"pt": 2.7190999999999996, "pct": 100.91297086658004}, "ytd": {"pt": 2.3772999999999995, "pct": 78.29595231037774}}, {"name": "5Y Breakeven Inflation", "latest": 2.3785, "1w": {"pt": 0.11369999999999969, "pct": 5.020310844224642}, "1m": {"pt": 0.11369999999999969, "pct": 5.020310844224642}, "6m": {"pt": -0.17969999999999997, "pct": -7.024470330701274}, "1y": {"pt": -0.04720000000000013, "pct": -1.945830069670616}, "ytd": {"pt": -0.01200000000000001, "pct": -0.5019870320016738}}, {"name": "10Y Breakeven Inflation", "latest": 2.3562, "1w": {"pt": 0.06909999999999972, "pct": 3.0212933409120595}, "1m": {"pt": 0.06909999999999972, "pct": 3.0212933409120595}, "6m": {"pt": 0.01939999999999964, "pct": 0.8301951386511315}, "1y": {"pt": -0.015200000000000102, "pct": -0.6409715779708233}, "ytd": {"pt": 0.04969999999999963, "pct": 2.15477996965097}}], "labor": [{"name": "Unemployment Rate", "latest": 4.1, "1w": {"pt": 0.0, "pct": 0.0}, "1m": {"pt": 0.0, "pct": 0.0}, "6m": {"pt": -0.3000000000000007, "pct": -6.818181818181834}, "1y": {"pt": -0.20000000000000018, "pct": -4.651162790697678}, "ytd": {"pt": -0.20000000000000018, "pct": -4.651162790697678}}, {"name": "Nonfarm Payrolls", "latest": 159075, "1w": {"pt": 162, "pct": 0.10194257235090899}, "1m": {"pt": 162, "pct": 0.10194257235090899}, "6m": {"pt": 639, "pct": 0.4033174278573051}, "1y": {"pt": 603, "pct": 0.3805088596092685}, "ytd": {"pt": 483, "pct": 0.3045550847457627}}, {"name": "Avg Hourly Earnings", "latest": 37.75, "1w": {"pt": 0.10000000000000142, "pct": 0.2656042496679985}, "1m": {"pt": 0.10000000000000142, "pct": 0.2656042496679985}, "6m": {"pt": 0.4799999999999969, "pct": 1.2878991145693501}, "1y": {"pt": 1.1300000000000026, "pct": 3.085745494265436}, "ytd": {"pt": 0.6000000000000014, "pct": 1.6150740242261141}}, {"name": "Avg Weekly Hours", "latest": 34.4, "1w": {"pt": 0.10000000000000142, "pct": 0.29154518950437736}, "1m": {"pt": 0.10000000000000142, "pct": 0.29154518950437736}, "6m": {"pt": 0.10000000000000142, "pct": 0.29154518950437736}, "1y": {"pt": 0.19999999999999574, "pct": 0.5847953216374144}, "ytd": {"pt": 0.10000000000000142, "pct": 0.29154518950437736}}, {"name": "JOLTS Job Openings", "latest": 7271, "1w": {"pt": 89, "pct": 1.2392091339459759}, "1m": {"pt": 89, "pct": 1.2392091339459759}, "6m": {"pt": 31, "pct": 0.42817679558011046}, "1y": {"pt": 182, "pct": 2.56735787840316}, "ytd": {"pt": 31, "pct": 0.42817679558011046}}, {"name": "Personal Income", "latest": 27114.8, "1w": {"pt": 115.09999999999854, "pct": 0.4263010329744351}, "1m": {"pt": 115.09999999999854, "pct": 0.4263010329744351}, "6m": {"pt": 504.2000000000007, "pct": 1.8947336775570665}, "1y": {"pt": 965.2000000000007, "pct": 3.6910698442806043}, "ytd": {"pt": 504.2000000000007, "pct": 1.8947336775570665}}], "risk": [{"name": "Sahm Rule Recession Ind.", "latest": -0.07, "1w": {"pt": -0.04000000000000001, "pct": -133.33333333333337}, "1m": {"pt": -0.04000000000000001, "pct": -133.33333333333337}, "6m": {"pt": -0.34, "pct": -125.92592592592592}, "1y": {"pt": -0.2, "pct": -153.84615384615387}, "ytd": {"pt": -0.37, "pct": -123.33333333333334}}, {"name": "Chicago Fed Fin. Conditions", "latest": -0.56, "1w": {"pt": -0.0050000000000000044, "pct": -0.9009009009009016}, "1m": {"pt": -0.0050000000000000044, "pct": -0.9009009009009016}, "6m": {"pt": -0.10100000000000003, "pct": -22.004357298474954}, "1y": {"pt": -0.03600000000000003, "pct": -6.8702290076335935}, "ytd": {"pt": 0.0029999999999998916, "pct": 0.5328596802841726}}], "money_housing": [{"name": "M2 Money Supply", "latest": 23218, "1w": {"pt": 102.79999999999927, "pct": 0.4447290094829344}, "1m": {"pt": 102.79999999999927, "pct": 0.4447290094829344}, "6m": {"pt": 804.5999999999985, "pct": 3.5898168060178217}, "1y": {"pt": 1192.5, "pct": 5.414179019772536}, "ytd": {"pt": 804.5999999999985, "pct": 3.5898168060178217}}, {"name": "Housing Starts", "latest": 1275, "1w": {"pt": -34, "pct": -2.5974025974025974}, "1m": {"pt": -34, "pct": -2.5974025974025974}, "6m": {"pt": -71, "pct": -5.274888558692422}, "1y": {"pt": -16, "pct": -1.2393493415956625}, "ytd": {"pt": -110, "pct": -7.9422382671480145}}, {"name": "Building Permits", "latest": 1394, "1w": {"pt": -39, "pct": -2.7215631542219123}, "1m": {"pt": -39, "pct": -2.7215631542219123}, "6m": {"pt": -146, "pct": -9.480519480519481}, "1y": {"pt": 47, "pct": 3.4892353377876764}, "ytd": {"pt": 1, "pct": 0.07178750897343862}}], "business": [{"name": "Mfg New Orders", "latest": 663616, "1w": {"pt": 5826, "pct": 0.8856930023259703}, "1m": {"pt": 5826, "pct": 0.8856930023259703}, "6m": {"pt": 44264, "pct": 7.146824422945272}, "1y": {"pt": 60030, "pct": 9.945558710771953}, "ytd": {"pt": 44264, "pct": 7.146824422945272}}, {"name": "Durable Goods Orders", "latest": 339392, "1w": {"pt": 3613, "pct": 1.0760053487561758}, "1m": {"pt": 3613, "pct": 1.0760053487561758}, "6m": {"pt": 19417, "pct": 6.068286584889444}, "1y": {"pt": 36360, "pct": 11.998732807096282}, "ytd": {"pt": 19417, "pct": 6.068286584889444}}, {"name": "Industrial Production", "latest": 103.0682, "1w": {"pt": 0.022800000000003706, "pct": 0.02212616963008898}, "1m": {"pt": 0.022800000000003706, "pct": 0.02212616963008898}, "6m": {"pt": 1.1629000000000076, "pct": 1.1411575256635402}, "1y": {"pt": 1.4435000000000002, "pct": 1.42042239731089}, "ytd": {"pt": 2.0294000000000096, "pct": 2.008535334940646}}, {"name": "Industrial Prod: Mfg", "latest": 99.0964, "1w": {"pt": -0.29879999999999995, "pct": -0.30061813850165797}, "1m": {"pt": -0.29879999999999995, "pct": -0.30061813850165797}, "6m": {"pt": 1.3633999999999986, "pct": 1.395025221777699}, "1y": {"pt": 1.0123999999999995, "pct": 1.0321765017739892}, "ytd": {"pt": 2.0178000000000083, "pct": 2.078521939953819}}, {"name": "Retail Sales", "latest": 773947, "1w": {"pt": 9485, "pct": 1.2407418550562357}, "1m": {"pt": 9485, "pct": 1.2407418550562357}, "6m": {"pt": 32669, "pct": 4.407118516939663}, "1y": {"pt": 43910, "pct": 6.014763635267801}, "ytd": {"pt": 39444, "pct": 5.37016186455331}}], "growth": [{"name": "Real GDP YoY", "latest": 2.1, "1w": {"pt": -0.6000000000000001, "pct": -22.222222222222225}, "1m": {"pt": -0.6000000000000001, "pct": -22.222222222222225}, "6m": {"pt": 0.10000000000000009, "pct": 5.000000000000004}, "1y": {"pt": 0.0, "pct": 0.0}, "ytd": {"pt": -0.6000000000000001, "pct": -22.222222222222225}}, {"name": "WTI Crude Oil", "latest": 97.462, "1w": {"pt": 13.564400000000006, "pct": 16.167804561751474}, "1m": {"pt": 13.564400000000006, "pct": 16.167804561751474}, "6m": {"pt": 6.078400000000002, "pct": 6.651521717244672}, "1y": {"pt": 33.503, "pct": 52.381994715364534}, "ytd": {"pt": 37.425000000000004, "pct": 62.336559121874856}}, {"name": "UMich Consumer Sentiment", "latest": 55.2, "1w": {"pt": 5.700000000000003, "pct": 11.515151515151521}, "1m": {"pt": 5.700000000000003, "pct": 11.515151515151521}, "6m": {"pt": -1.1999999999999957, "pct": -2.127659574468078}, "1y": {"pt": -6.5, "pct": -10.53484602917342}, "ytd": {"pt": -1.1999999999999957, "pct": -2.127659574468078}}, {"name": "Personal Spending", "latest": 22250.4, "1w": {"pt": 36.20000000000073, "pct": 0.1629588281369607}, "1m": {"pt": 36.20000000000073, "pct": 0.1629588281369607}, "6m": {"pt": 771.7000000000007, "pct": 3.5928617653768655}, "1y": {"pt": 1243.1000000000022, "pct": 5.917466785355577}, "ytd": {"pt": 771.7000000000007, "pct": 3.5928617653768655}}]};
+const POSITIONS = [{"symbol": "AMAT", "price": 444.57, "1d": 6.51, "1w": -2.61122916164648, "1m": -13.563276495635106, "6m": 27.212636277792075, "1y": 65.34756573808903, "ytd": 65.34756573808903}, {"symbol": "IBIT", "price": 46.02, "1d": 6.28, "1w": 5.140507196710075, "1m": 25.73770491803279, "6m": 14.30700447093891, "1y": -9.658421672555937, "ytd": -9.658421672555937}, {"symbol": "AVGO", "price": 357.61, "1d": 2.97, "1w": -1.2099781761927113, "1m": -5.892105263157891, "6m": 13.192795872503405, "1y": 2.8738277429376935, "ytd": 2.8738277429376935}, {"symbol": "STRL", "price": 518.68, "1d": 2.56, "1w": 1.4949906073888404, "1m": -6.503713317470626, "6m": 23.13462953730739, "1y": 62.51409951121691, "ytd": 62.51409951121691}, {"symbol": "SNEX", "price": 67.0, "1d": 1.32, "1w": -4.7889725735398665, "1m": 0.9036144578313166, "6m": 44.27217915590009, "1y": 54.80591497227356, "ytd": 54.80591497227356}, {"symbol": "NVDA", "price": 222.27, "1d": 1.34, "1w": 1.8232626322781706, "1m": 1.151360699007919, "6m": 23.209534368070955, "1y": 17.696584590945204, "ytd": 17.696584590945204}, {"symbol": "IAU", "price": 82.23, "1d": 0.66, "1w": 0.6363970138294093, "1m": 0.6363970138294093, "6m": -9.75636523266023, "1y": 0.8214811181951958, "ytd": 0.8214811181951958}, {"symbol": "SEI", "price": 69.66, "1d": 0.64, "1w": 3.3224562444378445, "1m": 12.463674523732642, "6m": 1.6044340723453825, "1y": 38.59928372463191, "ytd": 38.59928372463191}, {"symbol": "AZO", "price": 2855.31, "1d": 0.37, "1w": -0.7452854784044514, "1m": -7.090003904724713, "6m": -15.070583406207058, "1y": -13.57549745446181, "ytd": -13.57549745446181}, {"symbol": "AXP", "price": 311.56, "1d": 0.13, "1w": -4.043857217653761, "1m": -7.964078931820861, "6m": 5.83239919834234, "1y": -16.41134333163416, "ytd": -16.41134333163416}, {"symbol": "MEDP", "price": 612.33, "1d": -0.46, "1w": 4.222834967320272, "1m": 3.7320006776215635, "6m": 34.63720316622692, "1y": 7.234422612167711, "ytd": 7.234422612167711}, {"symbol": "MLI", "price": 60.07, "1d": -0.43, "1w": -0.6779100529100474, "1m": -6.8393300248139015, "6m": 8.763353250045272, "1y": 2.8419791131655603, "ytd": 2.8419791131655603}, {"symbol": "CROX", "price": 122.24, "1d": -0.62, "1w": 8.677098150782353, "1m": -4.989895849525883, "6m": 57.060259540023125, "1y": 40.5865439907993, "ytd": 40.5865439907993}, {"symbol": "APH", "price": 77.55, "1d": -1.04, "1w": -7.590562440419453, "1m": -2.8073693445294006, "6m": 21.342512908777973, "1y": 11.007729745204692, "ytd": 11.007729745204692}, {"symbol": "MSFT", "price": 493.78, "1d": -0.8, "1w": -0.37326231261223547, "1m": 2.522683387662724, "6m": 26.031802751473993, "1y": 4.406478623081147, "ytd": 4.406478623081147}, {"symbol": "SHEL", "price": 94.54, "1d": -1.33, "1w": -2.3044331921049808, "1m": 2.7497011194435395, "6m": 1.929919137466314, "1y": 25.318133616118782, "ytd": 25.318133616118782}, {"symbol": "MHO", "price": 138.84, "1d": -1.64, "1w": -0.7505897490885575, "1m": -6.5302275481351755, "6m": 12.049067871842473, "1y": 8.604505632040048, "ytd": 8.604505632040048}, {"symbol": "FTNT", "price": 169.84, "1d": -1.59, "1w": 8.822964054590896, "1m": 7.486867919751923, "6m": 103.66950473677899, "1y": 118.07909604519776, "ytd": 118.07909604519776}, {"symbol": "META", "price": 665.75, "1d": -2.43, "1w": 2.734441306729631, "1m": 22.45479794728421, "6m": 8.132471413721422, "1y": 2.358512322996269, "ytd": 2.358512322996269}, {"symbol": "RS", "price": 390.15, "1d": -2.6, "1w": -1.0299079171000234, "1m": -7.415757000474608, "6m": 31.834155572075414, "1y": 31.887634372253395, "ytd": 31.887634372253395}, {"symbol": "ASO", "price": 48.29, "1d": -2.8, "1w": -12.770953757225435, "1m": 3.0076791808873646, "6m": -4.847290640394091, "1y": -7.401725790987534, "ytd": -7.401725790987534}, {"symbol": "ONEW", "price": 9.14, "1d": -4.99, "1w": -14.818266542404471, "1m": -19.542253521126753, "6m": 9.461077844311388, "1y": -15.134633240482815, "ytd": -15.134633240482815}];
+const HAS_PORTFOLIO = true;
+const INSIGHTS = [];
+const PERIOD_LABEL = {"1d": "Daily", "1w": "1W", "1m": "1M", "6m": "6M", "ytd": "YTD", "1y": "1Y"};
+let currentPeriod = "1w";
+let currentInsightPeriod = "weekly";
+
+function fmtDelta(d) {
+  if (!d || d.pt === null || d.pt === undefined) return "";
+  const cls = d.pt >= 0 ? "t-up" : "t-down";
+  const arrow = d.pt >= 0 ? "▲" : "▼";
+  const pctTxt = (d.pct === null || d.pct === undefined) ? "" : ` (${d.pct >= 0 ? "+" : ""}${d.pct.toFixed(1)}%)`;
+  return `<span class="${cls}">${arrow} ${Math.abs(d.pt).toFixed(2)}${pctTxt}</span>`;
+}
+
+function renderGrid(elId, rows) {
+  const el = document.getElementById(elId);
+  el.innerHTML = rows.map(r => {
+    if (r.latest === null) {
+      return `<div class="t-row"><div class="t-name">${r.name}</div><div class="t-val">N/A</div><div class="t-delta"></div></div>`;
+    }
+    return `<div class="t-row"><div class="t-name">${r.name}</div>
+      <div class="t-val">${r.latest.toFixed(2)}</div>
+      <div class="t-delta">${fmtDelta(r[currentPeriod])}</div></div>`;
+  }).join("");
+}
+
+function renderMovers() {
+  if (!HAS_PORTFOLIO) return;
+  document.getElementById("winners-h3").textContent = `Top Movers (${PERIOD_LABEL[currentPeriod]} %)`;
+  document.getElementById("losers-h3").textContent = `Bottom Movers (${PERIOD_LABEL[currentPeriod]} %)`;
+
+  const ranked = POSITIONS.filter(p => p[currentPeriod] !== null && p[currentPeriod] !== undefined)
+                           .sort((a, b) => b[currentPeriod] - a[currentPeriod]);
+
+  if (ranked.length === 0) {
+    const msg = `<div class="t-na">No ${PERIOD_LABEL[currentPeriod]} data tracked yet for positions</div>`;
+    document.getElementById("winners").innerHTML = msg;
+    document.getElementById("losers").innerHTML = msg;
+    return;
+  }
+
+  const rowHtml = p => {
+    const pct = p[currentPeriod];
+    const cls = pct >= 0 ? "t-up" : "t-down";
+    const sign = pct >= 0 ? "+" : "";
+    return `<div class="t-row"><div class="t-name">${p.symbol}</div>
+      <div class="t-val">$${p.price.toFixed(2)}</div>
+      <div class="t-delta"><span class="${cls}">${sign}${pct.toFixed(1)}%</span></div></div>`;
+  };
+  document.getElementById("winners").innerHTML = ranked.slice(0, 5).map(rowHtml).join("");
+  document.getElementById("losers").innerHTML = ranked.slice(-5).reverse().map(rowHtml).join("");
+}
+
+function renderTicker() {
+  if (!HAS_PORTFOLIO) return;
+  const items = POSITIONS.map(p => {
+    const pct = p[currentPeriod];
+    const cls = pct !== null && pct !== undefined && pct >= 0 ? "t-up" : "t-down";
+    const sign = pct !== null && pct !== undefined && pct >= 0 ? "+" : "";
+    const txt = (pct === null || pct === undefined) ? "N/A" : `${sign}${pct.toFixed(1)}%`;
+    return `<span class="tick">${p.symbol} <b>${p.price.toFixed(2)}</b> <span class="${cls}">${txt}</span></span>`;
+  }).join("");
+  document.getElementById("ticker").innerHTML = items.repeat(3);
+}
+
+function renderInsights() {
+  const items = INSIGHTS.filter(it => it.period === currentInsightPeriod);
+  const el = document.getElementById("insights");
+
+  if (items.length === 0) {
+    const why = currentInsightPeriod === "daily"
+      ? "No daily insights yet — your Google Sheet needs a changepct column (see portfolio_visualize.py's docstring, column H) and generate_insights.py needs to be run again after that."
+      : "Nothing crossed the drastic-move threshold on the last check.";
+    el.innerHTML = `<div class="cal-empty">${why}</div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(it => {
+    const cls = it.pct >= 0 ? "t-up" : "t-down";
+    const sign = it.pct >= 0 ? "+" : "";
+    const move = (it.pt !== null && it.pt !== undefined)
+      ? `${it.pt >= 0 ? "+" : ""}${it.pt.toFixed(2)} (${sign}${it.pct.toFixed(1)}%)`
+      : `${sign}${it.pct.toFixed(1)}%`;
+    return `<div class="insight-card"><div class="insight-head">
+      <span class="insight-label">${it.label}</span>
+      <span class="${cls}">${move}</span>
+      <span class="insight-when">${it.period_label} &middot; ${it.generated_at}</span></div>
+      <div class="insight-text">${it.text}</div></div>`;
+  }).join("");
+}
+
+function renderAll() {
+  renderGrid("grid-rates", GRIDS.rates);
+  renderGrid("grid-inflation", GRIDS.inflation);
+  renderGrid("grid-labor", GRIDS.labor);
+  renderGrid("grid-risk", GRIDS.risk);
+  renderGrid("grid-money_housing", GRIDS.money_housing);
+  renderGrid("grid-business", GRIDS.business);
+  renderGrid("grid-growth", GRIDS.growth);
+  renderMovers();
+  renderTicker();
+  renderInsights();
+}
+
+document.getElementById("period-bar").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-period]");
+  if (!btn) return;
+  currentPeriod = btn.dataset.period;
+  document.querySelectorAll("#period-bar button").forEach(b => b.classList.toggle("active", b === btn));
+  renderAll();
+});
+
+document.getElementById("insight-period-group").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-iperiod]");
+  if (!btn) return;
+  currentInsightPeriod = btn.dataset.iperiod;
+  document.querySelectorAll("#insight-period-group button").forEach(b => b.classList.toggle("active", b === btn));
+  renderInsights();
+});
+
+renderAll();
+</script>
+</body>
+</html>
