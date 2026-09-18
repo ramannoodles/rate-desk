@@ -6,10 +6,9 @@
 # script).
 set -euo pipefail
 
-# --- Config: update these three paths for your machine ---
-PUBLISH_DIR="$HOME/rate-desk"                          # the GitHub Pages repo
-MACRO_PULL_DIR="$HOME/PycharmProjects/Claude/Macro v2"  # your existing macro_data_pull.py
-MACRO_XLSX="$MACRO_PULL_DIR/macro_dashboard.xlsx"       # its output workbook
+# --- Config ---
+PUBLISH_DIR="$HOME/rate-desk"                # the GitHub Pages repo
+MACRO_XLSX="$PUBLISH_DIR/macro_dashboard.xlsx"  # macro_data_pull.py's output, in this same folder now
 
 cd "$PUBLISH_DIR"
 
@@ -18,12 +17,8 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
-# --- Step 1: refresh the macro data pull (FRED + yfinance -> xlsx) ---
-cd "$MACRO_PULL_DIR"
-source .venv/bin/activate
-python macro_data_pull.py
-deactivate
-cd "$PUBLISH_DIR"
+# --- Step 1: refresh the macro data pull (FRED -> xlsx) ---
+python3 macro_data_pull.py
 
 # --- Step 2: regenerate all four pages from that data ---
 python3 macro_visualize.py "$MACRO_XLSX" -o index.html
