@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Unique job name. If you rename this file, rename Label to match. -->
+    <key>Label</key>
+    <string>com.raman.rate-desk</string>
+
+    <!-- IMPORTANT: replace YOURUSERNAME with your actual Mac username
+         (find it by running `whoami` in Terminal) -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/YOURUSERNAME/rate-desk/run_and_publish.sh</string>
+    </array>
+
+    <!-- Run every hour (3600 seconds) -->
+    <key>StartInterval</key>
+    <integer>3600</integer>
+
+    <!-- Also run once immediately when the job is loaded -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Logs so you can check on it — create the logs/ folder first -->
+    <key>StandardOutPath</key>
+    <string>/Users/YOURUSERNAME/rate-desk/logs/stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/YOURUSERNAME/rate-desk/logs/stderr.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>
